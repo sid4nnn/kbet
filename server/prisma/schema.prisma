@@ -1,0 +1,29 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id String @id @default(uuid())
+  email String @unique
+  passwordHash String
+  displayName String
+  role String @default("player") 
+  createdAt DateTime @default(now())
+  Wallet Wallet?
+}
+
+model Wallet {
+  id String @id @default(uuid())
+  userId String @unique
+  balanceCents Int @default(0)
+  user User @relation(fields: [userId], references: [id])
+}

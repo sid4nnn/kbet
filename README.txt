@@ -1,4 +1,4 @@
-Casino Blackjack Project
+Casino Project
 
 This is an online casino platform currently in development. The project includes a full frontend and backend, with the first working game being Blackjack. The site is built with Vite + React + TypeScript on the client side and Node.js + Prisma on the backend.
 

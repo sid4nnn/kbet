@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import type { User } from "./AuthPage";
+import { motion, AnimatePresence } from "framer-motion";
+import type { User } from "../pages/AuthPage";
+
+import cardBack from "../assets/blackjack/card-back.png";
 
 export interface BlackjackPageProps {
   user: User;
-  onBack?: () => void;
+  onBalanceChange?: (diff?: number) => void;
 }
 
-const API = "http://localhost:3000"; // NEW - same base URL as auth
+const API = "http://localhost:3000";
 
 // === Types ===
 type Suit = "♠" | "♥" | "♦" | "♣";
@@ -20,7 +22,7 @@ interface Card {
 
 type RoundStatus = "idle" | "playerTurn" | "dealerTurn" | "roundOver";
 
-// === Deck helpers (unchanged game logic) ===
+// === Deck helpers ===
 function createDeck(): Card[] {
   const suits: Suit[] = ["♠", "♥", "♦", "♣"];
   const ranks: Rank[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
@@ -72,69 +74,51 @@ function cardKey(c: Card, idx: number) {
   return `${c.rank}${c.suit}-${idx}`;
 }
 
-// === Card views (same as before, plus animation) ===
+// === Card Components ===
 interface CardFaceProps {
   card: Card;
 }
 
 function CardFace({ card }: CardFaceProps) {
   const isRed = card.suit === "♥" || card.suit === "♦";
+
   return (
-    <div className="w-full h-full bg-linear-to-br from-white to-gray-100 rounded-xl border border-gray-300 shadow-xl flex flex-col justify-between px-2 py-2 text-xs">
-      <span className={isRed ? "text-red-600 font-bold" : "text-black font-bold"}>
-        {card.rank}
-      </span>
-      <span
-        className={`text-center text-xl ${
-          isRed ? "text-red-600" : "text-black"
-        }`}
-      >
+    <div className="w-full h-full bg-white rounded-md md:rounded-lg shadow-2xl flex flex-col justify-between p-1 select-none relative overflow-hidden">
+      {/* Subtle texture/gradient overlay */}
+      <div className="absolute inset-0 bg-linear-to-br from-white via-gray-50 to-gray-200 opacity-50" />
+
+      {/* Top Left */}
+      <div className="flex flex-col items-center leading-none z-10">
+        <span className={`text-sm md:text-base font-bold ${isRed ? "text-red-600" : "text-gray-900"}`}>
+          {card.rank}
+        </span>
+        <span className={`text-sm md:text-base ${isRed ? "text-red-600" : "text-gray-900"}`}>
+          {card.suit}
+        </span>
+      </div>
+
+      {/* Center Big Suit */}
+      <div className={`absolute inset-0 flex items-center justify-center text-3xl md:text-5xl opacity-20 ${isRed ? "text-red-600" : "text-gray-900"}`}>
         {card.suit}
-      </span>
-      <span
-        className={
-          isRed
-            ? "text-red-600 font-bold self-end"
-            : "text-black font-bold self-end"
-        }
-      >
-        {card.rank}
-      </span>
+      </div>
+
+      {/* Bottom Right (Rotated) */}
+      <div className="flex flex-col items-center leading-none rotate-180 z-10">
+        <span className={`text-sm md:text-base font-bold ${isRed ? "text-red-600" : "text-gray-900"}`}>
+          {card.rank}
+        </span>
+        <span className={`text-sm md:text-base ${isRed ? "text-red-600" : "text-gray-900"}`}>
+          {card.suit}
+        </span>
+      </div>
     </div>
-  );
-}
-
-interface CardViewProps {
-  card: Card;
-  index: number;
-  owner: "player" | "dealer";
-}
-
-function CardView({ card, index, owner }: CardViewProps) {
-  const delay = index * 0.12;
-  const initialY = owner === "dealer" ? -40 : 40;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: initialY, scale: 0.9, rotate: owner === "dealer" ? -3 : 3 }}
-      animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
-      transition={{
-        delay,
-        type: "spring",
-        stiffness: 300,
-        damping: 20,
-      }}
-      className="w-16 h-24"
-    >
-      <CardFace card={card} />
-    </motion.div>
   );
 }
 
 function CardBack() {
   return (
-    <div className="w-full h-full rounded-xl bg-linear-to-br from-gray-700 to-gray-900 border border-gray-500 flex items-center justify-center text-sm text-gray-200 font-semibold">
-      ?
+    <div className="w-full h-full rounded-md md:rounded-lg overflow-hidden shadow-2xl border border-gray-800 bg-[#1a2c38]">
+      <img src={cardBack} alt="Card Back" className="w-full h-full object-cover" />
     </div>
   );
 }
@@ -147,26 +131,49 @@ interface FlippableCardProps {
 }
 
 function FlippableCard({ isFaceUp, card, index, owner }: FlippableCardProps) {
-  const delay = index * 0.12;
-  const initialY = owner === "dealer" ? -40 : 40;
+  // FASTER ANIMATIONS: extremely short delay
+  const delay = index * 0.03;
+
+  // Directional Animation:
+  // Dealer: Comes from TOP (negative Y)
+  // Player: Comes from BOTTOM (positive Y)
+  const initialY = owner === "dealer" ? -200 : 200;
+
+  // Only dealer's hole card (initially face down) should have rotation logic
+  const isDealerHoleCard = owner === "dealer" && index === 1;
+
+  const initialRotateY = isDealerHoleCard ? 180 : 0;
+  const targetRotateY = isDealerHoleCard ? (isFaceUp ? 0 : 180) : 0;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: initialY, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay, type: "spring", stiffness: 300, damping: 20 }}
-      className="relative w-16 h-24"
+      initial={{ opacity: 0, y: initialY, scale: 0.8, rotateY: initialRotateY }}
+      animate={{ opacity: 1, y: 0, scale: 1, rotateY: targetRotateY }}
+      transition={{
+        delay,
+        duration: 0.2, // Extremely fast duration (was 0.3)
+        type: "spring",
+        stiffness: 500, // Very stiff for instant snap (was 400)
+        damping: 30
+      }}
+      // EVEN SMALLER CARDS: w-16 h-24 mobile, w-20 h-28 desktop
+      className="relative w-16 h-24 md:w-20 md:h-28 perspective-1000 mx-1 -ml-8 first:ml-0 hover:-translate-y-2 transition-transform duration-200"
+      style={{ transformStyle: "preserve-3d" }}
     >
+      {/* Front (Face) */}
       <div
-        className="w-full h-full transform-3d transition-transform duration-500"
-        style={{ transform: isFaceUp ? "rotateY(180deg)" : "rotateY(0deg)" }}
+        className="absolute inset-0 backface-hidden"
+        style={{ transform: "rotateY(0deg)" }} // Front is 0deg
       >
-        <div className="absolute inset-0 backface-hidden">
-          <CardBack />
-        </div>
-        <div className="absolute inset-0 backface-hidden transform-[rotateY(180deg)]">
-          <CardFace card={card} />
-        </div>
+        <CardFace card={card} />
+      </div>
+
+      {/* Back */}
+      <div
+        className="absolute inset-0 backface-hidden"
+        style={{ transform: "rotateY(180deg)" }} // Back is 180deg
+      >
+        <CardBack />
       </div>
     </motion.div>
   );
@@ -175,15 +182,14 @@ function FlippableCard({ isFaceUp, card, index, owner }: FlippableCardProps) {
 // NEW - for typing server responses
 type WalletResponse = { balanceCents: number; msg?: string };
 
-export default function BlackjackPage({ user, onBack }: BlackjackPageProps) {
-  // NEW - wallet state synced with backend
-  const [wallet, setWallet] = useState<number>(user.walletBalance); // starts from /users/me
+export default function BlackjackPage({ user, onBalanceChange }: BlackjackPageProps) {
+  const [wallet, setWallet] = useState<number>(user.walletBalance);
 
-  // NEW - bet management
-  const [bet, setBet] = useState<number>(0);          // chosen bet for next round
-  const [activeBet, setActiveBet] = useState<number>(0); // bet currently on the table
+  // Betting
+  const [bet, setBet] = useState<number>(0);
+  const [activeBet, setActiveBet] = useState<number>(0);
 
-  // game state (same idea as before)
+  // Game State
   const [deck, setDeck] = useState<Card[]>(() => shuffle(createDeck()));
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
   const [dealerHand, setDealerHand] = useState<Card[]>([]);
@@ -193,8 +199,7 @@ export default function BlackjackPage({ user, onBack }: BlackjackPageProps) {
 
   const playerInfo = handValue(playerHand);
   const dealerInfo = handValue(dealerHand);
-
-  const roundInProgress = status === "playerTurn" || status === "dealerTurn"; // NEW
+  const roundInProgress = status === "playerTurn" || status === "dealerTurn";
 
   function resetDeckIfNeeded(currentDeck: Card[]): Card[] {
     if (currentDeck.length < 15) {
@@ -203,403 +208,274 @@ export default function BlackjackPage({ user, onBack }: BlackjackPageProps) {
     return currentDeck;
   }
 
-  // === NEW: helpers that talk to /wallet on the backend ===
-
-  // subtract from wallet when placing bet
   async function serverBet(amount: number): Promise<boolean> {
     try {
       const res = await fetch(`${API}/wallet/bet`, {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ amountCents: amount }),
       });
-      const data: WalletResponse = await res.json();
       if (!res.ok) {
-        setMessage(data.msg || "Bet failed");
+        const err = await res.json();
+        alert(err.msg || "Bet failed");
         return false;
       }
-      setWallet(data.balanceCents); // update from server
+      const data = (await res.json()) as WalletResponse;
+      setWallet(data.balanceCents);
+      onBalanceChange?.(-amount);
       return true;
-    } catch (err) {
-      console.error("serverBet error", err);
-      setMessage("Network error placing bet.");
+    } catch (e) {
+      console.error(e);
       return false;
     }
   }
 
-  // add winnings / refund when round ends
   async function serverCredit(amount: number): Promise<void> {
     try {
       const res = await fetch(`${API}/wallet/credit`, {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ amountCents: amount }),
       });
-      const data: WalletResponse = await res.json();
-      if (!res.ok) {
-        setMessage(data.msg || "Payout failed");
-        return;
+      if (res.ok) {
+        const data = (await res.json()) as WalletResponse;
+        setWallet(data.balanceCents);
+        onBalanceChange?.(amount);
       }
-      setWallet(data.balanceCents); // update from server
-    } catch (err) {
-      console.error("serverCredit error", err);
-      setMessage("Network error updating wallet.");
+    } catch (e) {
+      console.error(e);
     }
   }
 
-  // === NEW: bet amount control helpers ===
-
-  function changeBet(delta: number) {
-    if (roundInProgress) return; // cannot change bet in the middle of a round
-    setBet(prev => {
-      let next = prev + delta;
-      if (next < 0) next = 0;
-      if (next > wallet) next = wallet; // cannot bet more than wallet
-      return next;
-    });
-  }
-
-  function setBetFromInput(value: string) {
-    if (roundInProgress) return;
-    const n = parseInt(value, 10);
-    if (Number.isNaN(n)) {
-      setBet(0);
-      return;
-    }
-    let next = n;
-    if (next < 0) next = 0;
-    if (next > wallet) next = wallet;
-    setBet(next);
-  }
-
-  // === CHANGED: dealNewRound now validates bet + calls serverBet ===
-  async function dealNewRound() {
-    if (roundInProgress) return;
-
+  async function deal() {
     if (bet <= 0) {
-      setMessage("Place a bet first.");
+      setMessage("Place a bet first!");
       return;
     }
     if (bet > wallet) {
-      setMessage("Not enough balance for that bet.");
+      setMessage("Insufficient funds!");
       return;
     }
 
-    // talk to backend to subtract bet from wallet
-    const ok = await serverBet(bet);
-    if (!ok) return;
+    const success = await serverBet(bet);
+    if (!success) return;
 
-    const roundBet = bet;
-    setActiveBet(roundBet); // remember bet for payouts
-
-    let freshDeck = resetDeckIfNeeded(deck);
-    freshDeck = [...freshDeck];
-
-    const p1 = freshDeck.shift()!;
-    const d1 = freshDeck.shift()!;
-    const p2 = freshDeck.shift()!;
-    const d2 = freshDeck.shift()!;
-
-    const newPlayer = [p1, p2];
-    const newDealer = [d1, d2];
-
-    setDeck(freshDeck);
-    setPlayerHand(newPlayer);
-    setDealerHand(newDealer);
+    setActiveBet(bet);
+    setMessage("");
     setStatus("playerTurn");
     setShowDealerHole(false);
-    setMessage("");
 
-    const pInfo = handValue(newPlayer);
-    const dInfo = handValue(newDealer);
+    let d = resetDeckIfNeeded(deck);
+    const pHand = [d.pop()!, d.pop()!];
+    const dHand = [d.pop()!, d.pop()!];
 
-    // immediate blackjack handling plus payouts
-    if (pInfo.isBlackjack || dInfo.isBlackjack) {
-      setShowDealerHole(true);
+    setPlayerHand(pHand);
+    setDealerHand(dHand);
+    setDeck(d);
+
+    const pVal = handValue(pHand);
+    if (pVal.isBlackjack) {
+      // Instant win (unless dealer also has BJ, simplified here)
       setStatus("roundOver");
-      if (pInfo.isBlackjack && dInfo.isBlackjack) {
-        setMessage("Both have blackjack - Push.");
-        await serverCredit(roundBet);        // push, give back bet
-      } else if (pInfo.isBlackjack) {
-        setMessage("Blackjack! You win.");
-        await serverCredit(roundBet * 2);    // bet + win
-      } else {
-        setMessage("Dealer blackjack - You lose.");
-        // bet already taken
-      }
+      setMessage("Blackjack! You win!");
+      await serverCredit(bet * 2.5);
+      setActiveBet(0);
     }
   }
 
-  // game logic after hit is same as before, only async for symmetry
-  async function handleHit() {
-    if (status !== "playerTurn") return;
+  async function hit() {
+    let d = [...deck];
+    const card = d.pop()!;
+    const newHand = [...playerHand, card];
+    setPlayerHand(newHand);
+    setDeck(d);
 
-    let currentDeck = deck;
-    if (currentDeck.length === 0) {
-      currentDeck = shuffle(createDeck());
-    }
-
-    const newDeck = [...currentDeck];
-    const card = newDeck.shift()!;
-    const newPlayerHand = [...playerHand, card];
-
-    const info = handValue(newPlayerHand);
-
-    setDeck(newDeck);
-    setPlayerHand(newPlayerHand);
-
-    if (info.isBust) {
+    const val = handValue(newHand);
+    if (val.isBust) {
       setStatus("roundOver");
-      setShowDealerHole(true);
-      setMessage("Bust! Dealer wins.");
-      // bet is already lost on server side
+      setMessage("Bust! You lose.");
+      setActiveBet(0);
     }
   }
 
-  // CHANGED: handleStand now calls serverCredit for win/push payouts
-  async function handleStand() {
-    if (status !== "playerTurn") return;
-
+  async function stand() {
     setStatus("dealerTurn");
     setShowDealerHole(true);
 
-    let newDeck = [...deck];
-    const newDealerHand = [...dealerHand];
+    let d = [...deck];
+    let dH = [...dealerHand];
+    let dVal = handValue(dH);
 
-    let dInfo = handValue(newDealerHand);
-    while (dInfo.total < 17) {
-      if (newDeck.length === 0) {
-        newDeck = shuffle(createDeck());
-      }
-      const card = newDeck.shift()!;
-      newDealerHand.push(card);
-      dInfo = handValue(newDealerHand);
+    while (dVal.total < 17) {
+      await new Promise(r => setTimeout(r, 200));
+      const card = d.pop()!;
+      dH.push(card);
+      dVal = handValue(dH);
+      setDealerHand([...dH]);
     }
+    setDeck(d);
 
-    setDeck(newDeck);
-    setDealerHand(newDealerHand);
 
-    const pInfo = handValue(playerHand);
+    const pVal = handValue(playerHand);
+    let winMult = 0;
+    let msg = "";
 
-    if (dInfo.isBust) {
-      setStatus("roundOver");
-      setMessage("Dealer busts - You win!");
-      await serverCredit(activeBet * 2);
-      return;
-    }
-
-    if (pInfo.total > dInfo.total) {
-      setStatus("roundOver");
-      setMessage("You win!");
-      await serverCredit(activeBet * 2);
-    } else if (pInfo.total < dInfo.total) {
-      setStatus("roundOver");
-      setMessage("Dealer wins.");
-      // bet already lost
+    if (dVal.isBust) {
+      msg = "Dealer busts! You win!";
+      winMult = 2;
+    } else if (dVal.total > pVal.total) {
+      msg = "Dealer wins.";
+      winMult = 0;
+    } else if (dVal.total < pVal.total) {
+      msg = "You win!";
+      winMult = 2;
     } else {
-      setStatus("roundOver");
-      setMessage("Push.");
-      await serverCredit(activeBet);
+      msg = "Push.";
+      winMult = 1;
     }
+
+    setStatus("roundOver");
+    setMessage(msg);
+    if (winMult > 0) {
+      await serverCredit(activeBet * winMult);
+    }
+    setActiveBet(0);
   }
 
-  // === JSX ===
+
+
   return (
-    <div className="min-h-screen bg-green-900 text-white flex flex-col items-center justify-center px-4">
-      <div className="bg-green-800 p-6 rounded-2xl shadow-xl w-full max-w-2xl flex flex-col gap-4 border border-green-700">
-        {/* Header with wallet */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-wide">Blackjack</h1>
-            <p className="text-xs text-gray-200 mt-1">
-              Logged in as <span className="font-semibold">{user.displayName}</span>
-            </p>
-          </div>
+    <div className="relative w-full min-h-full flex flex-col items-center justify-center font-sans text-white overflow-hidden">
 
-          {/* NEW - wallet UI that uses local wallet state */}
-          <div className="flex items-center bg-black/20 px-3 py-2 rounded-xl text-lg -mt-4 mr-0.5">
-            <span className="mr-6">Wallet</span>
-            <span className="font-bold text-green-300">{wallet} 🍞</span>
-          </div>
+      {/* Game Area - Compact */}
+      <div className="relative z-10 w-full max-w-4xl px-4 py-2 flex flex-col items-center gap-2 md:gap-6 h-full justify-center">
 
-          {onBack && (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={onBack}
-                className="px-3 py-1 rounded-lg bg-gray-700 hover:bg-gray-600 text-xs"
-              >
-                Back
-              </button>
+        {/* Dealer Area */}
+        <div className="flex flex-col items-center gap-1 md:gap-2 min-h-[100px] md:min-h-[140px]">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="bg-black/50 px-2 py-0.5 md:px-3 md:py-1 rounded-full border border-white/10 backdrop-blur-md">
+              <span className="text-gray-400 text-[10px] md:text-xs uppercase tracking-wider font-bold">Dealer</span>
+              {status !== "idle" && showDealerHole && (
+                <span className="ml-2 text-emerald-400 font-mono text-xs md:text-sm">{dealerInfo.total}</span>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Dealer section (same, uses dealerInfo) */}
-        <div className="mt-2">
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-semibold mb-2">Dealer</h2>
-            <span className="text-xs text-gray-200">
-              {showDealerHole || dealerHand.length === 0
-                ? `Total: ${dealerInfo.total}`
-                : "Total: ?"}
-            </span>
           </div>
-          <div className="flex gap-2">
-            {dealerHand.length === 0 && (
-              <div className="text-sm text-gray-200 italic">
-                Press "Deal" to start a round.
-              </div>
-            )}
-            {dealerHand.map((c, idx) => {
-              if (idx === 1 && status === "playerTurn") {
-                return (
-                  <FlippableCard
-                    key={`dealer-flip-${idx}`}
-                    card={c}
-                    index={idx}
-                    owner="dealer"
-                    isFaceUp={showDealerHole}
-                  />
-                );
-              }
-              return (
-                <CardView
+          <div className="flex items-center justify-center pl-6 md:pl-8">
+            <AnimatePresence>
+              {dealerHand.map((c, i) => (
+                <FlippableCard
+                  key={cardKey(c, i)}
                   card={c}
-                  index={idx}
+                  index={i}
                   owner="dealer"
-                  key={cardKey(c, idx)}
+                  isFaceUp={i === 0 || showDealerHole || status === "roundOver"}
                 />
-              );
-            })}
+              ))}
+            </AnimatePresence>
           </div>
         </div>
 
-        <div className="border-t border-green-700 my-3" />
-
-        {/* Player section (same as before) */}
-        <div>
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-semibold mb-2">You</h2>
-            <span className="text-xs text-gray-200">
-              {playerHand.length > 0 ? `Total: ${playerInfo.total}` : "Total: 0"}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            {playerHand.length === 0 && (
-              <div className="text-sm text-gray-200 italic">
-                Waiting for a new round...
-              </div>
+        {/* Center Info / Message */}
+        <div className="h-8 md:h-12 flex items-center justify-center z-20">
+          <AnimatePresence mode="wait">
+            {message && (
+              <motion.div
+                initial={{ opacity: 0, y: 5, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -5, scale: 0.9 }}
+                className="bg-black/70 backdrop-blur-md px-4 py-1 md:px-6 md:py-2 rounded-xl border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+              >
+                <span className="text-sm md:text-lg font-bold text-emerald-400 tracking-wide whitespace-nowrap">{message}</span>
+              </motion.div>
             )}
-            {playerHand.map((c, idx) => (
-              <CardView
-                card={c}
-                index={idx}
-                owner="player"
-                key={cardKey(c, idx)}
-              />
-            ))}
-          </div>
-          {playerInfo.isBust && (
-            <p className="text-xs text-red-300 mt-1">You busted.</p>
-          )}
+          </AnimatePresence>
         </div>
 
-        {/* NEW - betting controls + action buttons */}
-        <div className="mt-4 flex flex-col gap-3">
-          <div>
-            <p className="text-xs text-gray-200 mb-1">Bet for next round</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => changeBet(5)}
-                disabled={roundInProgress}
-                className="px-3 py-1 rounded-full bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-semibold disabled:opacity-40"
-              >
-                +5
-              </button>
-              <button
-                type="button"
-                onClick={() => changeBet(10)}
-                disabled={roundInProgress}
-                className="px-3 py-1 rounded-full bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-semibold disabled:opacity-40"
-              >
-                +10
-              </button>
-              <button
-                type="button"
-                onClick={() => changeBet(25)}
-                disabled={roundInProgress}
-                className="px-3 py-1 rounded-full bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-semibold disabled:opacity-40"
-              >
-                +25
-              </button>
-              <button
-                type="button"
-                onClick={() => changeBet(-5)}
-                disabled={roundInProgress}
-                className="px-3 py-1 rounded-full bg-gray-600 hover:bg-gray-500 text-xs font-semibold disabled:opacity-40"
-              >
-                -5
-              </button>
-
-              <input
-                type="number"
-                min={0}
-                max={wallet}
-                value={bet}
-                onChange={(e) => setBetFromInput(e.target.value)}
-                disabled={roundInProgress}
-                className="w-20 p-1 rounded bg-black/40 border border-green-700 text-xs"
-              />
-
-              <span className="text-xs text-gray-200 ml-2">
-                Active bet: <span className="font-semibold">{activeBet}</span>
-              </span>
+        {/* Player Area */}
+        <div className="flex flex-col items-center gap-1 md:gap-2 min-h-[100px] md:min-h-[140px]">
+          <div className="flex items-center justify-center pl-6 md:pl-8">
+            <AnimatePresence>
+              {playerHand.map((c, i) => (
+                <FlippableCard
+                  key={cardKey(c, i)}
+                  card={c}
+                  index={i}
+                  owner="player"
+                  isFaceUp={true}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="bg-black/50 px-2 py-0.5 md:px-3 md:py-1 rounded-full border border-white/10 backdrop-blur-md">
+              <span className="text-gray-400 text-[10px] md:text-xs uppercase tracking-wider font-bold">You</span>
+              {status !== "idle" && (
+                <span className="ml-2 text-emerald-400 font-mono text-xs md:text-sm">{playerInfo.total}</span>
+              )}
             </div>
           </div>
+        </div>
 
-          <div className="flex flex-wrap gap-3 justify-between items-center">
-            <div className="flex gap-2">
+        {/* Controls - Compact */}
+        <div className="w-full max-w-3xl bg-black/60 backdrop-blur-xl rounded-xl md:rounded-2xl p-3 md:p-4 border border-white/5 shadow-2xl mt-1 md:mt-2 min-h-[88px] flex flex-col justify-center">
+          {!roundInProgress ? (
+            <div className="flex flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2 md:gap-3">
+                {[
+                  { val: 5, color: "from-yellow-600 to-yellow-800 border-yellow-400" },
+                  { val: 10, color: "from-red-600 to-red-800 border-red-400" },
+                  { val: 25, color: "from-green-600 to-green-800 border-green-400" },
+                  { val: 50, color: "from-blue-600 to-blue-800 border-blue-400" },
+                  { val: 100, color: "from-gray-900 to-black border-gray-500" },
+                ].map((chip) => (
+                  <button
+                    key={chip.val}
+                    onClick={() => setBet(prev => prev + chip.val)}
+                    className={`group relative w-10 h-10 md:w-12 md:h-12 rounded-full bg-linear-to-b ${chip.color} border-2 border-dashed shadow-lg hover:-translate-y-1 transition-transform active:scale-95 flex items-center justify-center`}
+                  >
+                    <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/20 blur-md`} />
+                    <span className="font-bold text-xs md:text-sm text-white drop-shadow-md">{chip.val}</span>
+                  </button>
+                ))}
+                <button
+                  onClick={() => setBet(0)}
+                  className="ml-2 text-[10px] md:text-xs text-gray-400 hover:text-red-400 underline decoration-red-400/50 hover:decoration-red-400 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="text-lg md:text-xl font-mono text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">
+                  Bet: <span className="text-white">${bet}</span>
+                </div>
+                <button
+                  onClick={deal}
+                  disabled={bet === 0}
+                  className="px-6 py-2 md:px-8 md:py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold text-sm md:text-base rounded-lg md:rounded-xl shadow-[0_0_15px_rgba(5,150,105,0.4)] hover:shadow-[0_0_25px_rgba(5,150,105,0.6)] transition-all active:scale-95 uppercase tracking-widest"
+                >
+                  Deal
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-4 md:gap-6 w-full">
               <button
-                type="button"
-                onClick={() => { void dealNewRound(); }} // call async without awaiting
-                className="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-black text-sm font-semibold"
-              >
-                {status === "idle" ? "Deal" : "Deal again"}
-              </button>
-              <button
-                type="button"
-                onClick={() => { void handleHit(); }}
-                disabled={status !== "playerTurn"}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-                  status === "playerTurn"
-                    ? "bg-blue-500 hover:bg-blue-400 text-white"
-                    : "bg-blue-900/40 text-gray-400 cursor-not-allowed"
-                }`}
+                onClick={hit}
+                className="px-6 py-2 md:px-8 md:py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold text-sm md:text-base rounded-lg md:rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-wider border-b-2 md:border-b-4 border-gray-900 active:border-b-0 active:translate-y-1"
               >
                 Hit
               </button>
               <button
-                type="button"
-                onClick={() => { void handleStand(); }}
-                disabled={status !== "playerTurn"}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-                  status === "playerTurn"
-                    ? "bg-purple-500 hover:bg-purple-400 text-white"
-                    : "bg-purple-900/40 text-gray-400 cursor-not-allowed"
-                }`}
+                onClick={stand}
+                className="px-6 py-2 md:px-8 md:py-3 bg-red-600 hover:bg-red-500 text-white font-bold text-sm md:text-base rounded-lg md:rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all active:scale-95 uppercase tracking-wider border-b-2 md:border-b-4 border-red-800 active:border-b-0 active:translate-y-1"
               >
                 Stand
               </button>
             </div>
-
-            <div className="text-xs text-right text-gray-200 min-h-6">
-              {message && <span>{message}</span>}
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

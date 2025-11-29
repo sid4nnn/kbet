@@ -25,7 +25,8 @@ r.get("/me", requireAuth, async (req: AuthedRequest, res) => {
     displayName: u.displayName,
     role: u.role,
     createdAt: u.createdAt,
-    walletBalance,                    
+    walletBalance,
+    xp: u.xp,
   });
 });
 

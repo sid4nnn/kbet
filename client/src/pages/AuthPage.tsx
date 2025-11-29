@@ -1,11 +1,12 @@
 import { useState } from "react";
 
-export type User = {
-  id: number | string;
+export interface User {
+  id: string;
   email: string;
   displayName: string;
   role: string;
   walletBalance: number;
+  xp: number;
 }
 
 type AuthPageProps = {
@@ -39,37 +40,38 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
 
     const data = await res.json();
 
-    if(!res.ok) {
+    if (!res.ok) {
       setMessage(data.msg || "Something went wrong");
       return;
     }
 
-  if (mode === "register") {
-    setMessage("Registered successfully, you can log in now.");
-    setMode("login");
-    return;
-  }
-  const meRes = await fetch(`${API}/users/me`, {
-  credentials: "include",
-  });
+    if (mode === "register") {
+      setMessage("Registered successfully, you can log in now.");
+      setMode("login");
+      return;
+    }
+    const meRes = await fetch(`${API}/users/me`, {
+      credentials: "include",
+    });
 
-  const meData = await meRes.json();
-  console.log("meData from /users/me:", meData);
+    const meData = await meRes.json();
+    console.log("meData from /users/me:", meData);
 
-  if (!meRes.ok) {
-    setMessage(meData.msg || "Failed to load profile");
-    return;
-  }
+    if (!meRes.ok) {
+      setMessage(meData.msg || "Failed to load profile");
+      return;
+    }
 
-  const user: User = {
-    id: meData.id,
-    email: meData.email,
-    displayName: meData.displayName,
-    role: meData.role,
-    walletBalance: meData.walletBalance,
-  };
+    const user: User = {
+      id: meData.id,
+      email: meData.email,
+      displayName: meData.displayName,
+      role: meData.role,
+      walletBalance: meData.walletBalance,
+      xp: meData.xp,
+    };
 
-  onLogin(user);
+    onLogin(user);
   }
 
   return (

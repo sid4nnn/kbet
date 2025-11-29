@@ -46,10 +46,10 @@ r.post("/register", async (req, res) => {
     data: { email, passwordHash, displayName, role: "player", Wallet: { create: {} } }
   });
 
-    const token = jwt.sign({ sub: u.id, role: u.role }, JWT_SECRET, { expiresIn: "8h" });
+  const token = jwt.sign({ sub: u.id, role: u.role }, JWT_SECRET, { expiresIn: "8h" });
   setCookie(res, token);
 
-  res.json({ id: u.id, email: u.email, displayName: u.displayName, role: u.role });
+  res.json({ id: u.id, email: u.email, displayName: u.displayName, role: u.role, xp: u.xp });
 });
 
 r.post("/login", async (req, res) => {
@@ -61,12 +61,12 @@ r.post("/login", async (req, res) => {
   const u = await prisma.user.findUnique({ where: { email } });
   if (!u) return res.status(401).json({ msg: "Invalid credentials" });
 
-  const ok = await bcrypt.compare(password, u.passwordHash);  
+  const ok = await bcrypt.compare(password, u.passwordHash);
   if (!ok) return res.status(401).json({ msg: "Invalid credentials" });
 
   const token = jwt.sign({ sub: u.id, role: u.role }, JWT_SECRET, { expiresIn: "8h" });
   setCookie(res, token);
-  res.json({ id: u.id, email: u.email, displayName: u.displayName, role: u.role });
+  res.json({ id: u.id, email: u.email, displayName: u.displayName, role: u.role, xp: u.xp });
 });
 
 r.post("/logout", (req, res) => {
@@ -101,6 +101,7 @@ r.get("/me", async (req, res) => {
         displayName: u.displayName,
         role: u.role,
         walletBalance,
+        xp: u.xp,
       },
     });
   } catch {

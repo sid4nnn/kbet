@@ -83,6 +83,18 @@ A full-stack online casino platform built with modern web technologies.
     npx prisma db push
     ```
 
+4.  **Seed the Database (Optional):**
+    Create a default admin user.
+
+    ```bash
+    # Inside server directory
+    npm run seed
+    ```
+
+    **Default Admin Credentials:**
+    -   **Email**: `admin@admin.com`
+    -   **Password**: `Admin123`
+
 ### Running the Project
 
 You can run both the client and server using the provided script in the root directory:

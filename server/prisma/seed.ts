@@ -3,12 +3,12 @@ import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 async function main() {
-    const passwordHash = await bcrypt.hash("Admin123",10);
+    const passwordHash = await bcrypt.hash("Admin123", 10);
     await prisma.user.upsert({
-        where: { email: "sid4nnn@gmail.com"} ,
+        where: { email: "admin@admin.com" },
         update: {},
         create: {
-            email: "sid4nnn@gmail.com",
+            email: "admin@admin.com",
             passwordHash,
             displayName: "Admin",
             role: "admin",
@@ -16,7 +16,7 @@ async function main() {
         },
     });
 
-    console.log("Seeded Sid4nnn@gmail.com / Admin123");
+    console.log("Seeded admin@admin.com / Admin123");
 }
 
 main().finally(() => prisma.$disconnect());

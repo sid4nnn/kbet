@@ -5,6 +5,7 @@ npm run dev &
 SERVER_PID=$!
 
 cd ../client
+npm run build
 npm run dev &
 CLIENT_PID=$!
 

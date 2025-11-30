@@ -3,7 +3,6 @@ import {
     Gamepad2,
     Dices,
     Tv,
-    Star,
     Flame,
     CircleDollarSign,
     CreditCard,

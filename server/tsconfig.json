@@ -6,9 +6,9 @@
     "outDir": "dist",
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
+    "module": "esnext",
     "target": "ES2020",
-    "moduleResolution": "nodenext",
+    "moduleResolution": "node",
     "typeRoots": [
       "./node_modules/@types"
     ],

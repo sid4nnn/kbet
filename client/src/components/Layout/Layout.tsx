@@ -1,11 +1,13 @@
 import Sidebar from '../Sidebar/Sidebar';
 import Topbar from '../Topbar/Topbar';
 import { Outlet } from 'react-router-dom';
+import type { User } from '../../pages/AuthPage';
+import type { Notification } from '../Topbar/NotificationDropdown';
 
 interface LayoutProps {
-  user: any;
+  user: User | null;
   onLogout: () => void;
-  notifications: any[];
+  notifications: Notification[];
 }
 
 const Layout = ({ user, onLogout, notifications }: LayoutProps) => {

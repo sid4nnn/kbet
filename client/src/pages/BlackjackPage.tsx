@@ -267,7 +267,7 @@ export default function BlackjackPage({ user, onBalanceChange }: BlackjackPagePr
     setStatus("playerTurn");
     setShowDealerHole(false);
 
-    let d = resetDeckIfNeeded(deck);
+    const d = resetDeckIfNeeded(deck);
     const pHand = [d.pop()!, d.pop()!];
     const dHand = [d.pop()!, d.pop()!];
 
@@ -286,7 +286,7 @@ export default function BlackjackPage({ user, onBalanceChange }: BlackjackPagePr
   }
 
   async function hit() {
-    let d = [...deck];
+    const d = [...deck];
     const card = d.pop()!;
     const newHand = [...playerHand, card];
     setPlayerHand(newHand);
@@ -304,8 +304,8 @@ export default function BlackjackPage({ user, onBalanceChange }: BlackjackPagePr
     setStatus("dealerTurn");
     setShowDealerHole(true);
 
-    let d = [...deck];
-    let dH = [...dealerHand];
+    const d = [...deck];
+    const dH = [...dealerHand];
     let dVal = handValue(dH);
 
     while (dVal.total < 17) {

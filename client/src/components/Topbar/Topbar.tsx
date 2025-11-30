@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Bell, MessageSquare, User, LogOut } from 'lucide-react';
+import { Search, Bell, MessageSquare, User as UserIcon, LogOut } from 'lucide-react';
 import AnimatedBalance from './AnimatedBalance';
 import type { Notification } from './NotificationDropdown';
 import NotificationDropdown from './NotificationDropdown';
 import DepositModal from './DepositModal';
+import type { User } from '../../pages/AuthPage';
 
 interface TopbarProps {
-    user: any;
+    user: User | null;
     onLogout: () => void;
     notifications: Notification[];
 }
@@ -90,7 +91,7 @@ const Topbar = ({ user, onLogout, notifications }: TopbarProps) => {
                     <div className="flex items-center gap-3 pl-4 border-l border-[#2c3e50]">
                         <div className="flex items-center gap-3 cursor-pointer group">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold shadow-lg relative">
-                                <User size={20} />
+                                <UserIcon size={20} />
                                 {/* Circular Progress Border could go here, but bar is requested */}
                             </div>
                             <div className="hidden lg:block min-w-[80px]">

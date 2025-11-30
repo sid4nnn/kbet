@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { X, CreditCard, Wallet, Bitcoin, Coins, Gamepad2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import type { User } from '../../pages/AuthPage';
+
 interface DepositModalProps {
     isOpen: boolean;
     onClose: () => void;
-    user: any;
+    user: User | null;
 }
 
 const paymentMethods = [
@@ -23,8 +25,6 @@ export default function DepositModal({ isOpen, onClose, user }: DepositModalProp
 
     const handleMethodClick = (methodId: string) => {
         setSelectedMethod(methodId);
-        if (methodId !== 'kcoins' || user?.role !== 'admin') {
-        }
     };
 
     const handleAdminDeposit = async () => {

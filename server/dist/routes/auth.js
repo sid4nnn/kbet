@@ -19,8 +19,8 @@ const Login = z.object({
 function setCookie(res, token) {
     res.cookie(COOKIE, token, {
         httpOnly: true,
-        sameSite: "lax",
-        secure: false,
+        sameSite: "none",
+        secure: true,
         path: "/",
         maxAge: 1000 * 60 * 60 * 8
     });
@@ -57,7 +57,7 @@ r.post("/login", async (req, res) => {
     res.json({ id: u.id, email: u.email, displayName: u.displayName, role: u.role, xp: u.xp });
 });
 r.post("/logout", (req, res) => {
-    res.clearCookie(COOKIE, { path: "/" });
+    res.clearCookie(COOKIE, { path: "/", secure: true, sameSite: "none" });
     res.json({ ok: true });
 });
 r.get("/me", async (req, res) => {

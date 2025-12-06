@@ -9,7 +9,7 @@ export interface BlackjackPageProps {
   onBalanceChange?: (diff?: number) => void;
 }
 
-const API = "http://localhost:3000";
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 // === Types ===
 type Suit = "♠" | "♥" | "♦" | "♣";

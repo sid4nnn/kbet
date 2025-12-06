@@ -5,7 +5,11 @@ import auth from "./routes/auth.js";
 import users from "./routes/users.js";
 import wallet from "./routes/wallet.js";
 const app = express();
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://kbet-front.onrender.com/", // your static site
+];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.get("/health", (_req, res) => res.json({ ok: true }));

@@ -10,13 +10,15 @@ interface Win {
     createdAt: string;
 }
 
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
 export default function LatestWins() {
     const [wins, setWins] = useState<Win[]>([]);
 
     useEffect(() => {
         const fetchWins = async () => {
             try {
-                const res = await fetch('http://localhost:3000/wallet/latest-wins');
+                const res = await fetch(`${API}/wallet/latest-wins`);
                 if (res.ok) {
                     const data = await res.json();
                     setWins(data);

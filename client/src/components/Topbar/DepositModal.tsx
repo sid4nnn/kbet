@@ -18,6 +18,8 @@ const paymentMethods = [
     { id: 'skins', name: 'CS Skins', icon: Gamepad2, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
 ];
 
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
 export default function DepositModal({ isOpen, onClose, user }: DepositModalProps) {
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
     const [adminAmount, setAdminAmount] = useState('');
@@ -31,7 +33,7 @@ export default function DepositModal({ isOpen, onClose, user }: DepositModalProp
         if (!adminAmount || isNaN(Number(adminAmount))) return;
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:3000/wallet/admin-deposit', {
+            const res = await fetch(`${API}/wallet/admin-deposit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

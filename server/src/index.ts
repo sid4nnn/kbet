@@ -8,7 +8,7 @@ import wallet from "./routes/wallet.js";
 const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://kbet-front.onrender.com/", // your static site
+  "https://kbet-front.onrender.com", // your static site
 ];
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
